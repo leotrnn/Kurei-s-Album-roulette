@@ -6,7 +6,7 @@ $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $artist1 = filter_input(INPUT_POST, 'artist1', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $artist2 = filter_input(INPUT_POST, 'artist2', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $artist3 = filter_input(INPUT_POST, 'artist3', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-
+$submit = filter_input(INPUT_POST, 'submit', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 function getBestGenre(string $genre, string $artist1, string $artist2, string $artist3, $accessToken)
 {
@@ -17,30 +17,35 @@ function getBestGenre(string $genre, string $artist1, string $artist2, string $a
 
     $tabGenres = [];
 
-    $tabGenres["genre"] = [$genre];
+    if($genre != ""){
+        $tabGenres["genre"] = [$genre];
+    }
+
     if ($artist1 !== "") {
-        $tabGenres["artist1"] = GetArtistGenre($artist1, $accessToken);
+        $artistGenres = GetGenreByArtist($artist1, $accessToken);
+        if ($artistGenres[1] !== null) {
+            $tabGenres["artist1"] = $artistGenres;
+        }
     }
     if ($artist2 !== "") {
-        $tabGenres["artist2"] = GetArtistGenre($artist2, $accessToken);
+        $artistGenres = GetGenreByArtist($artist2, $accessToken);
+        if ($artistGenres[1] !== null) {
+            $tabGenres["artist2"] = $artistGenres;
+        }
     }
     if ($artist3 !== "") {
-        $tabGenres["artist3"] = GetArtistGenre($artist3, $accessToken);
+        $artistGenres = GetGenreByArtist($artist3, $accessToken);
+        if ($artistGenres[1] !== null) {
+            $tabGenres["artist3"] = $artistGenres;
+        }
     }
-
-
-    echo "<pre>";
-    var_dump(json_encode($tabGenres, JSON_PRETTY_PRINT));
-    echo "</pre>";
 
 
     $tabScores = [];
 
-
     foreach ($tabGenres as $category => $genres) {
 
         foreach ($genres as $genreItem) {
-
             if ($category == "genre") {
                 if (!isset($tabScores[$genreItem])) {
                     $tabScores[$genreItem] = $genreWeight;
@@ -59,20 +64,21 @@ function getBestGenre(string $genre, string $artist1, string $artist2, string $a
 
     arsort($tabScores);
 
-    echo "<pre>";
-    var_dump(json_encode($tabScores, JSON_PRETTY_PRINT));
-    echo "</pre>";
+   
+
+
+    $highestScore = max($tabScores);
+    $bestGenres = array_keys($tabScores, $highestScore);
+
+
+    $return = $bestGenres;
+
+ 
 
     return $return;
 }
 
-if ($genre != "") {
-    $genres = getBestGenre($genre, $artist1, $artist2, $artist3, $accessToken);
-}
-
-function searchArtistsByGenre(string $genre) {}
-
-function GetArtistGenre($artistName, $accessToken)
+function GetGenreByArtist($artistName, $accessToken)
 {
     $return = null;
 
@@ -106,14 +112,53 @@ function GetArtistGenre($artistName, $accessToken)
     return $return;
 }
 
+if ($submit == "search") {
+    $selectedGenre = getBestGenre($genre, $artist1, $artist2, $artist3, $accessToken);
+}
 
 ?>
 
+<!DOCTYPE html>
+<html lang="en">
 
-<form action="#" method="post">
-    <input type="text" name="genre" placeholder="genre" value="<?= $genre ?>" id="">
-    <input type="text" name="artist1" placeholder="artist1" value="<?= $artist1 ?>" id="">
-    <input type="text" name="artist2" placeholder="artist2" value="<?= $artist2 ?>" id="">
-    <input type="text" name="artist3" placeholder="artist3" value="<?= $artist3 ?>" id="">
-    <input type="submit" value="nigga">
-</form>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css">
+    <title>Kurei's album roulette</title>
+</head>
+
+<body>
+    <form action="index.php" method="post">
+        <h1>What genre of music do you like ?</h1>
+        <input type="text" name="genre" placeholder="genre"  value="<?= $genre ?>" id="">
+        <h1>Add up to 3 artists you like to perfect the search (optional)</h1>
+        <input type="text" name="artist1" placeholder="artist N°1" value="<?= $artist1 ?>" id="">
+        <input type="text" name="artist2" placeholder="artist N°2" value="<?= $artist2 ?>" id="">
+        <input type="text" name="artist3" placeholder="artist N°3" value="<?= $artist3 ?>" id="">
+        <input type="submit" name="submit"  value="search">
+    </form>
+    <?php if ($selectedGenre != "") { ?>
+        <?php if (count($selectedGenre) > 1) { ?>
+            <form action="spin.php" method="post">
+                <h1>What's your favorite genre between those ?</h1>
+                <select name="favoriteGenre">
+                    <?php for ($i = 0; $i < count($selectedGenre); $i++) { ?>
+                        <option value="<?= $selectedGenre[$i] ?>"><?= $selectedGenre[$i] ?></option>
+                    <?php } ?>
+                    <input type="submit" value="this one">
+                </select>
+            </form>
+        <?php } else { ?>
+            <?php if ($selectedGenre != "") { ?>
+                <h1>Basically you like <?= $selectedGenre[0] ?> huh</h1>
+                <form action="spin.php" method="post">
+                    <input type="hidden" name="favoriteGenre" value="<?= $selectedGenre[0] ?>">
+                    <input type="submit" value="ye">
+                </form>
+    <?php }
+        }
+    } ?>
+</body>
+
+</html>

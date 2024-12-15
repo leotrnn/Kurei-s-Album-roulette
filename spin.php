@@ -1,4 +1,9 @@
 <?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 include("config.php");
 
 $favoriteGenre = filter_input(INPUT_POST, 'favoriteGenre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -34,7 +39,8 @@ function getRandomAlbumByGenre($favoriteGenre, $accessToken)
 
 function getArtistsByGenre($genre, $accessToken)
 {
-    $url = "https://api.spotify.com/v1/search?q=genre:" . urlencode($genre) . "&type=artist";
+    // Utiliser l'API de recherche pour récupérer les artistes par genre
+    $url = "https://api.spotify.com/v1/search?q=genre:" . urlencode($genre) . "&type=artist&limit=5";  // Limite à 5 artistes pour ne pas avoir trop de résultats
     $headers = [
         "Authorization: Bearer " . $accessToken
     ];
@@ -55,11 +61,20 @@ function getArtistsByGenre($genre, $accessToken)
 
     $data = json_decode($response, true);
 
+    // Déboguer les données pour comprendre la structure de la réponse
+
+    // Vérifier les genres des artistes
+    foreach ($data['artists']['items'] as $artist) {
+        echo "<p><strong>{$artist['name']}</strong> - Genres : " . implode(", ", $artist['genres']) . "</p>";
+    }
+
+    // Récupérer les artistes
     return $data['artists']['items'] ?? [];
 }
 
 function getAlbumsByArtist($artistId, $accessToken)
 {
+    // Récupérer les albums d'un artiste en utilisant son ID
     $url = "https://api.spotify.com/v1/artists/" . $artistId . "/albums?include_groups=album";
     $headers = [
         "Authorization: Bearer " . $accessToken
@@ -80,6 +95,9 @@ function getAlbumsByArtist($artistId, $accessToken)
     }
 
     $data = json_decode($response, true);
+
+    // Déboguer les données pour voir les albums récupérés
+
     return $data['items'] ?? [];
 }
 
@@ -99,6 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($favoriteGenre)) {
         echo "<p>$result</p>";
     }
 }
+
 ?>
 
 <!DOCTYPE html>
